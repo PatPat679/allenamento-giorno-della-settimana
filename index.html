@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Allenatore del Giorno della Settimana</title>
+<style>
+  :root {
+    --paper: #f0ead9;
+    --ink: #2b2620;
+    --ink-soft: #635a4c;
+    --brass: #9c7a3c;
+    --brass-dark: #6f5628;
+    --correct: #47664a;
+    --wrong: #9a4436;
+    --rule: #c9bd9f;
+    --card: #fbf7ec;
+    --display: 'Georgia', 'Times New Roman', serif;
+    --mono: 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(156,122,60,0.06), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(156,122,60,0.06), transparent 40%);
+    color: var(--ink);
+    font-family: var(--display);
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px 48px;
+    min-height: 100vh;
+  }
+
+  .almanac {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .masthead {
+    text-align: center;
+    border-bottom: 3px double var(--ink);
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+  }
+
+  .masthead h1 {
+    font-size: 26px;
+    margin: 4px 0 2px;
+    font-weight: normal;
+    letter-spacing: 0.5px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--rule);
+    box-shadow: 0 2px 0 var(--rule), 0 8px 20px rgba(43,38,32,0.08);
+    padding: 28px 20px 24px;
+    text-align: center;
+    position: relative;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 10px; left: 10px; right: 10px; bottom: 10px;
+    border: 1px solid var(--rule);
+    pointer-events: none;
+  }
+
+  .date-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--brass-dark);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .date-display {
+    font-size: 34px;
+    line-height: 1.15;
+    margin-bottom: 4px;
+  }
+
+  .date-display .weekday-num {
+    display: block;
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-family: var(--mono);
+    margin-top: 6px;
+  }
+
+  .timer {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 10px;
+    min-height: 18px;
+  }
+
+  .days-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 22px;
+  }
+
+  .mode-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin: 0 0 16px; }
+  .mode-btn { padding: 10px 4px; border: 1px solid var(--brass); background: var(--paper); color: var(--ink); font-family: var(--mono); font-size: 12px; cursor: pointer; }
+  .mode-btn.active { background: var(--brass-dark); color: white; }
+  .mode-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  .day-btn {
+    font-family: var(--display);
+    font-size: 15px;
+    padding: 12px 8px;
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+  }
+
+  .day-btn:active {
+    transform: translateY(1px);
+  }
+
+  .day-btn:hover {
+    background: #e6dcc4;
+  }
+
+  .day-btn:focus-visible {
+    outline: 2px solid var(--brass-dark);
+    outline-offset: 2px;
+  }
+
+  .day-btn.correct {
+    background: var(--correct);
+    border-color: var(--correct);
+    color: var(--paper);
+  }
+
+  .day-btn.wrong {
+    background: var(--wrong);
+    border-color: var(--wrong);
+    color: var(--paper);
+  }
+
+  .day-btn.reveal-correct {
+    background: var(--correct);
+    border-color: var(--correct);
+    color: var(--paper);
+  }
+
+  .day-btn:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+
+  .day-btn:disabled.correct,
+  .day-btn:disabled.wrong,
+  .day-btn:disabled.reveal-correct {
+    opacity: 1;
+  }
+
+  .feedback {
+    min-height: 22px;
+    margin-top: 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .feedback.ok { color: var(--correct); }
+  .feedback.no { color: var(--wrong); }
+
+  .next-btn {
+    margin-top: 16px;
+    width: 100%;
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    cursor: pointer;
+  }
+
+  .next-btn:hover { background: var(--brass-dark); }
+
+</style>
+</head>
+<body>
+<div class="almanac">
+  <div class="masthead">
+    <h1>L'Almanacco del Giorno</h1>
+  </div>
+
+  <div class="mode-selector" role="group" aria-label="Periodo delle date">
+    <button class="mode-btn" data-mode="past" aria-pressed="false">Passate</button>
+    <button class="mode-btn" data-mode="future" aria-pressed="false">Future</button>
+    <button class="mode-btn active" data-mode="all" aria-pressed="true">Tutte</button>
+  </div>
+  <div class="card">
+    <div class="date-label" id="dateLabel">Che giorno cadeva il&hellip;</div>
+    <div class="date-display" id="dateDisplay">&mdash;</div>
+    <div class="timer" id="timerDisplay"></div>
+
+    <div class="days-grid" id="daysGrid"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="nextBtn">Prossima data &rarr;</button>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const days = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  const months = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+
+  const dateDisplay = document.getElementById('dateDisplay');
+  const dateLabel = document.getElementById('dateLabel');
+  const timerDisplay = document.getElementById('timerDisplay');
+  const daysGrid = document.getElementById('daysGrid');
+  const feedback = document.getElementById('feedback');
+  const nextBtn = document.getElementById('nextBtn');
+
+  let score = 0, total = 0, streak = 0, bestTime = null;
+  let currentDate = null, answered = false, startTime = null, timerInterval = null;
+
+  const MIN_DATE = new Date(1582, 9, 15); // 15 ottobre 1582 (inizio calendario gregoriano)
+  const MAX_YEAR = 3000;
+  let dateMode = 'all';
+  const modeButtons = document.querySelectorAll('.mode-btn');
+  modeButtons.forEach(btn => btn.addEventListener('click', () => {
+    dateMode = btn.dataset.mode;
+    modeButtons.forEach(b => {
+      const selected = b === btn;
+      b.classList.toggle('active', selected);
+      b.setAttribute('aria-pressed', String(selected));
+    });
+    newRound();
+  }));
+
+  const displayOrder = [1, 2, 3, 4, 5, 6, 0]; // Lunedì..Domenica, mapped to Date.getDay() indices
+  const btnByIdx = {};
+  displayOrder.forEach((i) => {
+    const btn = document.createElement('button');
+    btn.className = 'day-btn';
+    btn.textContent = days[i];
+    btn.dataset.idx = i;
+    btn.addEventListener('click', () => handleAnswer(i, btn));
+    daysGrid.appendChild(btn);
+    btnByIdx[i] = btn;
+  });
+
+  function randomDate() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const minTime = dateMode === 'future' ? today.getTime() + 86400000 : MIN_DATE.getTime();
+    const maxTime = dateMode === 'past' ? today.getTime() - 1 : new Date(MAX_YEAR, 11, 31).getTime();
+    const minDay = Math.ceil(minTime / 86400000);
+    const maxDay = Math.floor(maxTime / 86400000);
+    const randomDay = minDay + Math.floor(Math.random() * (maxDay - minDay + 1));
+    const d = new Date(randomDay * 86400000);
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  }
+
+  function formatDate(d) {
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  function newRound() {
+    answered = false;
+    feedback.textContent = '';
+    feedback.className = 'feedback';
+    currentDate = randomDate();
+    dateDisplay.textContent = formatDate(currentDate);
+    dateLabel.textContent = currentDate.getTime() >= Date.now() ? 'Che giorno cadrà il…' : 'Che giorno cadeva il…';
+    [...daysGrid.children].forEach(btn => {
+      btn.disabled = false;
+      btn.classList.remove('correct', 'wrong', 'reveal-correct');
+    });
+    startTimer();
+  }
+
+  function startTimer() {
+    clearInterval(timerInterval);
+    startTime = Date.now();
+    timerDisplay.textContent = '0.0s';
+    timerInterval = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      timerDisplay.textContent = elapsed.toFixed(1) + 's';
+    }, 100);
+  }
+
+  function stopTimer() {
+    clearInterval(timerInterval);
+    return (Date.now() - startTime) / 1000;
+  }
+
+  function handleAnswer(idx, btn) {
+    if (answered) return;
+    answered = true;
+    const elapsed = stopTimer();
+    const correctIdx = currentDate.getDay();
+    total++;
+
+    [...daysGrid.children].forEach(b => b.disabled = true);
+
+    if (idx === correctIdx) {
+      score++;
+      streak++;
+      btn.classList.add('correct');
+      feedback.textContent = `Esatto! ${elapsed.toFixed(1)}s`;
+      feedback.className = 'feedback ok';
+      if (bestTime === null || elapsed < bestTime) {
+        bestTime = elapsed;
+      }
+    } else {
+      streak = 0;
+      btn.classList.add('wrong');
+      btnByIdx[correctIdx].classList.add('reveal-correct');
+      feedback.textContent = `Era ${days[correctIdx]}. Riprova!`;
+      feedback.className = 'feedback no';
+    }
+
+  }
+
+  nextBtn.addEventListener('click', newRound);
+
+  newRound();
+})();
+</script>
+</body>
+</html>
